@@ -2,21 +2,13 @@
 
 module Parser where
 
--- I import qualified so that it's clear which
--- functions are from the parsec library:
-
--- I am the error message infix operator, used later:
-
--- Imported so we can play with applicative things later.
--- not qualified as mostly infix operators we'll be using.
 import Control.Applicative
--- Get the Identity monad from here:
 import Control.Monad.Identity (Identity)
 import ParserModel
 import Text.Parsec ((<?>))
 import qualified Text.Parsec as Parsec
 
--- alias Parsec.parse for more concise usage in my examples:
+-- to get rid of the filename param
 parse rule text = Parsec.parse rule "(source)" text
 
 ---------------------------------------------------------
@@ -136,7 +128,6 @@ comparisonOperator = Parsec.choice
         Parsec.string "!="  >> return ParserModel.OpNotEqual
       ]
 
--- returns (name, comparison, value)
 logicalExpression :: Parsec.Parsec String () ParserModel.Condition
 logicalExpression = do
   Parsec.spaces
@@ -154,11 +145,6 @@ logicalExpression = do
       ParserModel.OpLessThanEq -> ParserModel.LessThanEq fieldNameStr fieldValueStr
       ParserModel.OpEqual -> ParserModel.Equal fieldNameStr fieldValueStr
       ParserModel.OpNotEqual -> ParserModel.NotEqual fieldNameStr fieldValueStr
-
--- TODO: incorrect
--- TODO: currently does not support logical operators
--- TODO: and it certainly does not return them
-
 
 orConditionExpression :: Parsec.Parsec String () ParserModel.Condition
 orConditionExpression = do 
@@ -197,9 +183,9 @@ logicalExpressions = do
   expressions <- conditionalExpressions
   return expressions
 
-sillyMap :: Maybe ParserModel.Condition -> ParserModel.Condition
-sillyMap Nothing =  ParserModel.NoCondition
-sillyMap (Just x) = x 
+toCondition :: Maybe ParserModel.Condition -> ParserModel.Condition
+toCondition Nothing =  ParserModel.NoCondition
+toCondition (Just x) = x 
 
 readExpr :: Parsec.Parsec String () ParserModel.Operation
 readExpr = do
@@ -208,8 +194,17 @@ readExpr = do
   entityNameStr <- entityName
   Parsec.optional Parsec.spaces
   conditionExpr <- Parsec.optionMaybe logicalExpressions
-  expressions <- pure $ sillyMap conditionExpr
+  expressions <- pure $ toCondition conditionExpr
   return ParserModel.Get {
       entity = entityNameStr,
       condition = expressions
   }
+
+expr :: Parsec.Parsec String () ParserModel.Operation
+expr = defineEntityExpr <|> addExpr <|> readExpr
+
+-- untested
+startExpression :: Parsec.Parsec String () [ParserModel.Operation]
+startExpression = do
+    expressions <- Parsec.many1 expr
+    return expressions
