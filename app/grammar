@@ -1,0 +1,23 @@
+start ::= expr+
+expr ::= defineEntityExpr 
+    | addExpr
+    | readExpr
+    | modifyExpr
+    | deleteExpr
+
+entityName ::= A-Za-z_0-9
+fieldName ::= A-Za-z_0-9
+fieldType ::= int | string | date
+entityField ::= fieldName fieldType
+defineEntityExpr ::= 'define' entityName entityField+ 'end'
+
+numberValue ::= [0-9]+
+stringValue ::= ...
+fieldValue ::= numberValue | stringValue
+addExpr ::= 'add' entityName LPAREN fieldValue (COMMA fieldValue)* RPAREN
+
+logicalOperation ::= 'and' | 'or'
+comparisonOperator ::= '>' | '>=' | '<' | '<=' | '=' | '!='
+logicalExpression ::= fieldName comparisonOperator fieldValue
+logicalExpressions ::= 'where' logicalExpression (logicalOperation logicalExpression)*
+readExpr ::= 'get' entityName logicalExpressions?
